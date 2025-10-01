@@ -1,72 +1,105 @@
-﻿/*******************************************************************************************
-*
-*   raylib [core] example - basic window
-*
-*   Example complexity rating: [★☆☆☆] 1/4
-*
-*   Welcome to raylib!
-*
-*   To test examples, just press F6 and execute 'raylib_compile_execute' script
-*   Note that compiled executable is placed in the same folder as .c file
-*
-*   To test the examples on Web, press F6 and execute 'raylib_compile_execute_web' script
-*   Web version of the program is generated in the same folder as .c file
-*
-*   You can find all basic examples on C:\raylib\raylib\examples folder or
-*   raylib official webpage: www.raylib.com
-*
-*   Enjoy using raylib. :)
-*
-*   Example originally created with raylib 1.0, last time updated with raylib 1.0
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2013-2025 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
+﻿#include "raylib.h"
 
-#include "raylib.h"
-
-//------------------------------------------------------------------------------------
-// Program main entry point
-//------------------------------------------------------------------------------------
-int main(void)
+struct Figures
 {
-    // Initialization
-    //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 450;
+	Model model;
 
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
+	Vector3 position = { 0, 0, 0 };
+};
 
-    SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+void main()
+{
 
-    // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+	Figures cube;
+	Figures decahedron;
+	Figures dodecahedron;
+	Figures icosahedron;
+	Figures octahedron;
+	Figures tetrahedron;
 
-        // Draw
-        //----------------------------------------------------------------------------------
-        BeginDrawing();
+	InitWindow(800, 600, "TP 3");
 
-        ClearBackground(RAYWHITE);
+	Camera3D camera = { 0 };
+	camera.position = { 4.0f, 4.0f, 4.0f };
+	camera.target = { 0.0f, 0.0f, 0.0f };
+	camera.up = { 0.0f, 1.0f, 0.0f };
+	camera.fovy = 45.0f;
+	camera.projection = CAMERA_PERSPECTIVE;
+	float cameraSpeed = 0.2f;
 
-        DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+	cube.model = LoadModel("res/cube.obj");
+	decahedron.model = LoadModel("res/decahedron.obj");
+	dodecahedron.model = LoadModel("res/dodecahedron.obj");
+	icosahedron.model = LoadModel("res/icosahedron.obj");
+	octahedron.model = LoadModel("res/octahedron.obj");
+	tetrahedron.model = LoadModel("res/tetrahedron.obj");
 
-        EndDrawing();
-        //----------------------------------------------------------------------------------
-    }
+	cube.position = { 0.0f, 0.0f, 0.0f, };
+	decahedron.position = { 3.0f, 0.0f, 0.0f, };
+	dodecahedron.position = { 6.0f, 0.0f, 0.0f, };
+	icosahedron.position = { -7.0f, 0.0f, 0.0f, };
+	octahedron.position = { -5.0f, 3.0f, 0.0f, };
+	tetrahedron.position = { -3.0f, 5.0f, 0.0f, };
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+	SetTargetFPS(60);
 
-    return 0;
+	while (!WindowShouldClose())
+	{
+		UpdateCamera(&camera, CAMERA_FREE);
+		DisableCursor();
+
+		if (IsKeyDown(KEY_RIGHT))
+		{
+			camera.position.x += cameraSpeed;
+		}
+		if (IsKeyDown(KEY_LEFT))
+		{
+			camera.position.x -= cameraSpeed;
+		}
+		if (IsKeyDown(KEY_UP))
+		{
+			camera.position.z -= cameraSpeed;
+		}
+		if (IsKeyDown(KEY_DOWN))
+		{
+			camera.position.z += cameraSpeed;
+		}
+		if (IsKeyDown(KEY_Q))
+		{
+			camera.position.y += cameraSpeed;
+		}
+		if (IsKeyDown(KEY_E))
+		{
+			camera.position.y -= cameraSpeed;
+		}
+
+
+		BeginDrawing();
+		ClearBackground(RAYWHITE);
+
+		BeginMode3D(camera);
+
+		DrawModel(cube.model, cube.position, 1.0f, RED);
+		DrawModel(decahedron.model, decahedron.position, 1.0f, RED);
+		DrawModel(dodecahedron.model, dodecahedron.position, 1.0f, RED);
+		DrawModel(icosahedron.model, icosahedron.position, 1.0f, RED);
+		DrawModel(octahedron.model, octahedron.position, 1.0f, RED);
+		DrawModel(tetrahedron.model, tetrahedron.position, 1.0f, RED);
+
+		DrawGrid(20, 1.0f);
+		EndMode3D();
+
+		EndDrawing();
+	}
+
+
+	UnloadModel(cube.model);
+	UnloadModel(decahedron.model);
+	UnloadModel(dodecahedron.model);
+	UnloadModel(icosahedron.model);
+	UnloadModel(octahedron.model);
+	UnloadModel(tetrahedron.model);
+
+	CloseWindow();
+
 }
