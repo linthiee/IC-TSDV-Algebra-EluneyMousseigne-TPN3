@@ -1,6 +1,5 @@
 ﻿#include "raylib.h"
 #include "raymath.h"
-#include "rlgl.h"
 #include <vector>
 #include <cmath>
 #include <float.h>
@@ -9,30 +8,27 @@
 
 const int gridDivisions = 3;
 
-// Estructura para un Bounding Box Alineado con los Ejes (Axis-Aligned Bounding Box)
 struct MyAABB
 {
     Vector3 min;
     Vector3 max;
 };
 
-// Estructura para una figura 3D
 struct Figure
 {
     std::string name;
     Model model;
-    MyAABB localAABB; // AABB en coordenadas locales del modelo
+    MyAABB localAABB; 
 
     Vector3 position;
     Vector3 scale;
     Vector3 rotAxis;
     float rotAngle;
 
-    Matrix worldMatrix; // Matriz de transformación mundial
-    MyAABB worldAABB;   // AABB en coordenadas mundiales (actualizado)
+    Matrix worldMatrix; 
+    MyAABB worldAABB;   
 };
 
-// Calcula el AABB local de un mesh
 MyAABB CalculateLocalAABB(Mesh mesh)
 {
     MyAABB aabb;
@@ -43,11 +39,9 @@ MyAABB CalculateLocalAABB(Mesh mesh)
         return aabb;
     }
 
-    // Inicializa min y max con el primer vértice
     aabb.min = { mesh.vertices[0], mesh.vertices[1], mesh.vertices[2] };
     aabb.max = aabb.min;
 
-    // Itera sobre el resto de los vértices para encontrar los extremos
     for (int i = 1; i < mesh.vertexCount; i++)
     {
         Vector3 v =
@@ -68,10 +62,8 @@ MyAABB CalculateLocalAABB(Mesh mesh)
     return aabb;
 }
 
-// Actualiza el AABB a coordenadas mundiales aplicando la transformación
 MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform)
 {
-    // Obtiene las 8 esquinas del AABB local
     Vector3 corners[8];
     corners[0] = { localBB.min.x, localBB.min.y, localBB.min.z };
     corners[1] = { localBB.max.x, localBB.min.y, localBB.min.z };
@@ -82,13 +74,11 @@ MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform)
     corners[6] = { localBB.max.x, localBB.min.y, localBB.max.z };
     corners[7] = { localBB.max.x, localBB.max.y, localBB.min.z };
 
-    // Transforma las 8 esquinas a coordenadas mundiales
     for (int i = 0; i < 8; i++)
     {
         corners[i] = Vector3Transform(corners[i], transform);
     }
 
-    // Encuentra el nuevo min y max de las esquinas transformadas
     Vector3 min = corners[0];
     Vector3 max = corners[0];
     for (int i = 1; i < 8; i++)
@@ -105,36 +95,46 @@ MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform)
     return { min, max };
 }
 
-// Comprueba la colisión entre dos AABBs (Fase Amplia)
 bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB)
 {
-    if (aabbA.max.x < aabbB.min.x || aabbA.min.x > aabbB.max.x) return false;
-    if (aabbA.max.y < aabbB.min.y || aabbA.min.y > aabbB.max.y) return false;
-    if (aabbA.max.z < aabbB.min.z || aabbA.min.z > aabbB.max.z) return false;
+    if (aabbA.max.x < aabbB.min.x || aabbA.min.x > aabbB.max.x)
+    {
+        return false;
+    }
 
-    // Si no hay separación en ningún eje, están colisionando
+    if (aabbA.max.y < aabbB.min.y || aabbA.min.y > aabbB.max.y)
+    {
+        return false;
+    }
+
+    if (aabbA.max.z < aabbB.min.z || aabbA.min.z > aabbB.max.z)
+    {
+        return false;
+    }
+
     return true;
 }
 
-// Comprueba si un punto está dentro de un mesh convexo (Fase Estrecha)
-// Utiliza el método de "Separating Axis Theorem" (SAT) con los planos de las caras.
-// Asume que el modelo es convexo y cerrado.
 bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
 {
-    if (model.meshCount == 0) return false;
-    Mesh mesh = model.meshes[0];
-    if (mesh.triangleCount == 0) return false;
+    if (model.meshCount == 0)
+    {
+        return false;
+    }
 
-    // El "centro" del modelo, asumiendo que (0,0,0) local es el centro.
-    // Esto se usa para orientar las normales de las caras.
-    // Se calcula UNA VEZ fuera del bucle para mayor eficiencia.
+    Mesh mesh = model.meshes[0];
+    
+    if (mesh.triangleCount == 0)
+    {
+        return false;
+    }
+
     Vector3 modelCenter = Vector3Transform(Vector3Zero(), worldMatrix);
 
     for (int i = 0; i < mesh.triangleCount; i++)
     {
         Vector3 localV1, localV2, localV3;
 
-        // Obtiene los 3 vértices del triángulo en espacio local
         if (mesh.indices)
         {
             localV1 = { mesh.vertices[mesh.indices[i * 3 + 0] * 3 + 0], mesh.vertices[mesh.indices[i * 3 + 0] * 3 + 1], mesh.vertices[mesh.indices[i * 3 + 0] * 3 + 2] };
@@ -148,53 +148,33 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
             localV3 = { mesh.vertices[(i * 3 + 2) * 3 + 0], mesh.vertices[(i * 3 + 2) * 3 + 1], mesh.vertices[(i * 3 + 2) * 3 + 2] };
         }
 
-        // Transforma los vértices al espacio mundial
         Vector3 v1 = Vector3Transform(localV1, worldMatrix);
         Vector3 v2 = Vector3Transform(localV2, worldMatrix);
         Vector3 v3 = Vector3Transform(localV3, worldMatrix);
 
-        // Calcula el plano de la cara
         Vector3 edge1 = Vector3Subtract(v2, v1);
         Vector3 edge2 = Vector3Subtract(v3, v1);
         Vector3 normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));
 
-        // Asegura que la normal apunte "hacia afuera" del modelo
-        // Compara la dirección de la normal con la dirección del centro a la cara
         Vector3 toCenter = Vector3Subtract(modelCenter, v1);
 
         if (Vector3DotProduct(normal, toCenter) > 0)
         {
-            // La normal apunta hacia adentro, la invertimos
             normal = Vector3Negate(normal);
         }
 
-        // Ahora, comprueba si el punto está "delante" o "detrás" del plano
         Vector3 toPoint = Vector3Subtract(point, v1);
         float dot = Vector3DotProduct(toPoint, normal);
 
-        // --- ESTA ES LA CORRECCIÓN ---
-        // Si la normal apunta "hacia afuera", y el producto punto es positivo (>0),
-        // significa que el punto está "delante" de este plano.
-        // Si está "delante" de CUALQUIER plano, está FUERA del objeto.
         if (dot > 0.0001f)
         {
-            return false; // El punto está fuera, no necesitamos seguir comprobando.
+            return false; 
         }
-
-        // Tu código anterior (incorrecto):
-        // if (dot < -0.0001f)
-        // {
-        //     return false;
-        // }
     }
 
-    // Si el bucle termina, el punto no estuvo "delante" de ningún plano.
-    // Por lo tanto, está "detrás" o "sobre" todos los planos, lo que significa
-    // que está DENTRO del objeto.
     return true;
 }
 
-// Dibuja un AABB en el mundo
 void DrawAABB(MyAABB aabb, Color color)
 {
     Vector3 size =
@@ -325,7 +305,10 @@ void main()
         broadPhaseCollision = false;
         gridPoints.clear();
 
-        if (!controlledFigure) continue; 
+        if (!controlledFigure)
+        {
+            continue;
+        }
 
         Matrix matScaleA = MatrixScale(controlledFigure->scale.x, controlledFigure->scale.y, controlledFigure->scale.z);
         Matrix matRotA = MatrixRotate(controlledFigure->rotAxis, controlledFigure->rotAngle * DEG2RAD);
@@ -378,12 +361,19 @@ void main()
 
                 for (int iz = 0; iz < gridDivisions; iz++)
                 {
-                    if (stopChecking) break;
+                    if (stopChecking)
+                    {
+                        break;
+                    }
+
                     float z = (gridDivisions < 2) ? intersectionBB.min.z + size.z * 0.5f : intersectionBB.min.z + step.z * iz;
 
                     for (int iy = 0; iy < gridDivisions; iy++)
                     {
-                        if (stopChecking) break;
+                        if (stopChecking)
+                        {
+                            break;
+                        }
                         float y = (gridDivisions < 2) ? intersectionBB.min.y + size.y * 0.5f : intersectionBB.min.y + step.y * iy;
 
                         for (int ix = 0; ix < gridDivisions; ix++)
@@ -403,15 +393,27 @@ void main()
                                 break;
                             }
 
-                            if (gridDivisions < 2) break;
+                            if (gridDivisions < 2)
+                            {
+                                break;
+                            }
                         }
-                        if (gridDivisions < 2) break;
+                        if (gridDivisions < 2)
+                        {
+                            break;
+                        }
                     }
-                    if (gridDivisions < 2) break;
+                    if (gridDivisions < 2)
+                    {
+                        break;
+                    }
                 }
             }
 
-            if (finalCollision) break; 
+            if (finalCollision)
+            {
+                break;
+            }
         }
 
         BeginDrawing();
@@ -432,7 +434,10 @@ void main()
 
         for (int i = 0; i < figureCount; i++)
         {
-            if (&allFigures[i] == controlledFigure) continue;
+            if (&allFigures[i] == controlledFigure)
+            {
+                continue;
+            }
             DrawAABB(allFigures[i].worldAABB, DARKGRAY);
         }
 
