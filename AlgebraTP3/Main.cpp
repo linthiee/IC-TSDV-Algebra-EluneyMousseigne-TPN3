@@ -133,7 +133,9 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
 
     for (int i = 0; i < mesh.triangleCount; i++)
     {
-        Vector3 localV1, localV2, localV3;
+        Vector3 localV1 = { 0, 0, 0 };
+        Vector3 localV2 = { 0, 0, 0 };
+        Vector3 localV3 = { 0, 0, 0 };
 
         if (mesh.indices)
         {
@@ -313,7 +315,7 @@ void main()
         Matrix matScaleA = MatrixScale(controlledFigure->scale.x, controlledFigure->scale.y, controlledFigure->scale.z);
         Matrix matRotA = MatrixRotate(controlledFigure->rotAxis, controlledFigure->rotAngle * DEG2RAD);
         Matrix matTransA = MatrixTranslate(controlledFigure->position.x, controlledFigure->position.y, controlledFigure->position.z);
-
+        
         controlledFigure->worldMatrix = MatrixMultiply(MatrixMultiply(matScaleA, matRotA), matTransA);
         controlledFigure->worldAABB = GetUpdatedAABB(controlledFigure->localAABB, controlledFigure->worldMatrix);
 
@@ -452,8 +454,8 @@ void main()
         DrawGrid(20, 1.0f);
         EndMode3D();
 
-        DrawRectangle(10, 10, 380, 180, Fade(SKYBLUE, 0.5f));
-        DrawRectangleLines(10, 10, 380, 180, BLUE);
+        DrawRectangle(10, 10, 260, 180, Fade(SKYBLUE, 0.5f));
+        DrawRectangleLines(10, 10, 260, 180, BLUE);
 
         DrawText("Status:", 20, 20, 20, BLACK);
         if (finalCollision)
