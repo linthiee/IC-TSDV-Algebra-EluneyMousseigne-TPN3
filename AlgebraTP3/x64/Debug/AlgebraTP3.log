@@ -1,0 +1,7 @@
+﻿  Main.cpp
+C:\Users\Eluney\Documents\Fundamentos de programacion\AlgebraTP3\AlgebraTP3\Main.cpp(198,6): warning C4326: return type of 'main' should be 'int' instead of 'void'
+LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/FORCE' specification
+raylib.lib(rcore.obj) : warning LNK4006: CloseWindow already defined in user32.lib(USER32.dll); second definition ignored
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+C:\Users\Eluney\Documents\Fundamentos de programacion\AlgebraTP3\x64\Debug\AlgebraTP3.exe : warning LNK4088: image being generated due to /FORCE option; image may not run
+  AlgebraTP3.vcxproj -> C:\Users\Eluney\Documents\Fundamentos de programacion\AlgebraTP3\x64\Debug\AlgebraTP3.exe
