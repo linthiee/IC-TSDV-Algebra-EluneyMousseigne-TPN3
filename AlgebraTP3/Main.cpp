@@ -81,16 +81,16 @@ MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform)
 
     Vector3 min = corners[0];
     Vector3 max = corners[0];
-    for (int i = 1; i < 8; i++)
-    {
-        min.x = fminf(min.x, corners[i].x);
-        min.y = fminf(min.y, corners[i].y);
-        min.z = fminf(min.z, corners[i].z);
+    //for (int i = 1; i < 8; i++)
+    //{
+    //    min.x = fminf(min.x, corners[i].x);
+    //    min.y = fminf(min.y, corners[i].y);
+    //    min.z = fminf(min.z, corners[i].z);
 
-        max.x = fmaxf(max.x, corners[i].x);
-        max.y = fmaxf(max.y, corners[i].y);
-        max.z = fmaxf(max.z, corners[i].z);
-    }
+    //    max.x = fmaxf(max.x, corners[i].x);
+    //    max.y = fmaxf(max.y, corners[i].y);
+    //    max.z = fmaxf(max.z, corners[i].z);
+    //}
 
     return { min, max };
 }
