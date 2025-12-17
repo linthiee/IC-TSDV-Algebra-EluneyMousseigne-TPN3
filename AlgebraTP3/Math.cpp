@@ -1,6 +1,7 @@
 #include "Math.h"
 
 #include "raymath.h"
+#include <iostream>
 
 MyAABB CalculateLocalAABB(Mesh mesh)
 {
@@ -104,6 +105,8 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
 
     Vector3 modelCenter = Vector3Transform(Vector3Zero(), worldMatrix);
 
+    Vector3 lastNormal = { 0,0,0 };
+
     for (int i = 0; i < mesh.triangleCount; i++)
     {
         Vector3 localV1 = { 0, 0, 0 };
@@ -131,6 +134,13 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
         Vector3 edge2 = Vector3Subtract(v3, v1);
         Vector3 normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));
 
+        if (Vector3DotProduct(normal, lastNormal) > 0.99)
+        {
+            continue;
+        }
+
+        lastNormal = normal;
+
         Vector3 toCenter = Vector3Subtract(modelCenter, v1);
 
         if (Vector3DotProduct(normal, toCenter) > 0)
@@ -145,6 +155,8 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix)
         {
             return false;
         }
+
+        std::cout << mesh.triangleCount << "\r";
     }
 
     return true;

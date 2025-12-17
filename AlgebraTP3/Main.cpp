@@ -6,7 +6,7 @@
 #include <iostream>
 #include "raymath.h"
 
-const int gridDivisions = 1;
+const int gridDivisions = 5;
 
 struct Figure
 {
