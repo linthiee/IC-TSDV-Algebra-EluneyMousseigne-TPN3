@@ -5,7 +5,7 @@
 
 void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
 {
-	Vector3 directions[3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
+	Vector3 directions[3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }; //directions to rotate (x, y, z)
 
 	Mesh mesh = model.meshes[0];
 
@@ -46,20 +46,20 @@ void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
 		}
 	}
 
-	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f);
-	obb.halfSizes = Vector3Scale(Vector3Subtract(max, min), 0.5f);
+	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f); //get the center from the min and max of the obb (half of min + max)
+	obb.halfSizes = Vector3Scale(Vector3Subtract(max, min), 0.5f); //get the halfsize of the obb
 
-	Vector3 wereStartToRot = Vector3Zero();
+	//Vector3 wereStartToRot = Vector3Zero();
 
-	for (int i = 0; i < 3; i++)
-	{
-		wereStartToRot = Vector3CrossProduct(rotAxis, directions[i]);
-		obb.localAxes[i] = directions[i] * cos(rotAngle * DEG2RAD) + wereStartToRot * sin(rotAngle * DEG2RAD) + rotAxis * Vector3DotProduct(rotAxis, directions[i]) * (1 - cos(rotAngle * DEG2RAD));
-	}
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	wereStartToRot = Vector3CrossProduct(rotAxis, directions[i]);
+	//	obb.localAxes[i] = directions[i] * cos(rotAngle * DEG2RAD) + wereStartToRot * sin(rotAngle * DEG2RAD) + rotAxis * Vector3DotProduct(rotAxis, directions[i]) * (1 - cos(rotAngle * DEG2RAD));
+	//}
 }
 
 
-void CalculateUniqueModelNormal(Model model, std::vector<Plane>& uniqueNormals)
+void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes) //calculate all the object normals outside of the update loop for better performance (and to save unecessary process)
 {
 	Mesh mesh = model.meshes[0];
 
@@ -92,17 +92,17 @@ void CalculateUniqueModelNormal(Model model, std::vector<Plane>& uniqueNormals)
 
 		Vector3 toCenter = Vector3Subtract(Vector3Zero(), v1);
 
-		if (Vector3DotProduct(normal, toCenter) > 0)
+		if (Vector3DotProduct(normal, toCenter) > 0) //if the normal points to the inside of the model negate it so it points to the outside
 		{
 			normal = Vector3Negate(normal);
 		}
 
-		float d = -Vector3DotProduct(normal, v1);
+		float d = -Vector3DotProduct(normal, v1); //solve for d in the plane equation (normal * v1 + d = 0)
 
-		for (int j = 0; j < uniqueNormals.size(); j++)
+		for (int j = 0; j < uniquePlanes.size(); j++)
 		{
-			if (Vector3DotProduct(normal, uniqueNormals[j].normal) > 0.99f &&
-				fabsf(d - uniqueNormals[j].d) < 0.01f)
+			if (Vector3DotProduct(normal, uniquePlanes[j].normal) > 0.99f && //check if they point to the same direction
+				fabsf(d - uniquePlanes[j].d) < 0.01f) //check if the distance from the origin is less than 0.1 units
 			{
 				isUnique = false;
 				break;
@@ -111,7 +111,7 @@ void CalculateUniqueModelNormal(Model model, std::vector<Plane>& uniqueNormals)
 
 		if (isUnique)
 		{
-			uniqueNormals.push_back({ normal, d });
+			uniquePlanes.push_back({ normal, d });
 		}
 	}
 }
@@ -202,7 +202,7 @@ bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB)
 	return true;
 }
 
-bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniqueNormals)
+bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniquePlanes)
 {
 	if (model.meshCount == 0)
 	{
@@ -216,11 +216,11 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vect
 		return false;
 	}
 
-	point = Vector3Transform(point, MatrixInvert(worldMatrix));
+	point = Vector3Transform(point, MatrixInvert(worldMatrix)); //convert the point into object coordinates for better performance
 
-	for (int i = 0; i < uniqueNormals.size(); i++)
+	for (int i = 0; i < uniquePlanes.size(); i++)
 	{
-		if (Vector3DotProduct(uniqueNormals[i].normal, point) - uniqueNormals[i].d > EPSILON)
+		if (Vector3DotProduct(uniquePlanes[i].normal, point) + uniquePlanes[i].d > EPSILON)
 		{
 			return false;
 		}

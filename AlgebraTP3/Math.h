@@ -22,9 +22,9 @@ struct Plane
 };
 
 void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle);
-void CalculateUniqueModelNormal(Model model, std::vector<Plane>& uniqueNormals);
+void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes);
 MyAABB CalculateLocalAABB(Mesh mesh);
 MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform);
 bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB);
 
-bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniqueNormals);
+bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniquePlanes);

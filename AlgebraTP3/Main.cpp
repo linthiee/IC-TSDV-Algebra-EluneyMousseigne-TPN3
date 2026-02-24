@@ -6,7 +6,7 @@
 #include <iostream>
 #include "raymath.h"
 
-const int gridDivisions = 3;
+const int gridDivisions = 40;
 
 struct Figure
 {
@@ -22,7 +22,7 @@ struct Figure
 	Matrix worldMatrix;
 	MyAABB worldAABB;
 
-	std::vector<Plane> allNormals;
+	std::vector<Plane> allPlanes;
 };
 
 void DrawAABB(MyAABB aabb, Color color);
@@ -76,7 +76,7 @@ void main()
 			std::cout << "Error: Failed to load model " << allFigures[i].name.c_str() << "\n";
 		}
 
-		CalculateUniqueModelNormal(allFigures[i].model, allFigures[i].allNormals);
+		CalculateUniqueModelPlanes(allFigures[i].model, allFigures[i].allPlanes);
 
 		allFigures[i].localAABB = CalculateLocalAABB(allFigures[i].model.meshes[0]);
 		allFigures[i].scale = { 1.0f, 1.0f, 1.0f };
@@ -195,8 +195,8 @@ void main()
 							Vector3 point = { x, y, z };
 							gridPoints.push_back(point);
 
-							bool inA = IsPointInsideMesh(point, controlledFigure->model, controlledFigure->worldMatrix, controlledFigure->allNormals);
-							bool inB = IsPointInsideMesh(point, other->model, other->worldMatrix, other->allNormals);
+							bool inA = IsPointInsideMesh(point, controlledFigure->model, controlledFigure->worldMatrix, controlledFigure->allPlanes);
+							bool inB = IsPointInsideMesh(point, other->model, other->worldMatrix, other->allPlanes);
 
 							if (inA && inB)
 							{
