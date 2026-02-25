@@ -25,6 +25,8 @@ struct Figure
 	std::vector<Plane> allPlanes;
 };
 
+void printObjectInfo(Figure& figure);
+
 void DrawAABB(MyAABB aabb, Color color);
 void Draw(const int figureCount, Figure allFigures[6], Color modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints);
 
@@ -142,9 +144,15 @@ void main()
 			other->worldAABB = GetUpdatedAABB(other->localAABB, other->worldMatrix);
 
 			bool aabbCollision = CheckCollisionAABB(controlledFigure->worldAABB, other->worldAABB);
-
+			 
 			if (aabbCollision)
 			{
+				if (IsKeyPressed(KEY_M))
+				{
+					std::cout << "\n\n\n";
+					printObjectInfo(*controlledFigure);
+				}
+
 				broadPhaseCollision = true;
 
 				MyAABB intersectionBB;
@@ -348,6 +356,18 @@ void Draw(const int figureCount, Figure  allFigures[6], Color  modelColors[6], b
 	DrawText("Select Object: Keys 1-6", 20, 160, 10, DARKGRAY);
 
 	DrawFPS(GetScreenWidth() - 90, 10);
+}
+
+void printObjectInfo(Figure& figure)
+{
+	std::cout << "pos: " << figure.position.x << ", " << figure.position.y << ", " << figure.position.z << '\n';
+	std::cout << "rotation angle: " << figure.rotAngle << " figure rotation axis: " << figure.rotAxis.x << ", " << figure.rotAxis.y << ", " << figure.rotAxis.z << '\n';
+	std::cout << "scale: " << figure.scale.x << ", " << figure.scale.y << ", " << figure.scale.z << '\n';
+	std::cout << "matrix: " << "\n" << figure.worldMatrix.m0 << ", " << figure.worldMatrix.m4 << ", " << figure.worldMatrix.m8 <<
+		", " << figure.worldMatrix.m12 << "\n" << figure.worldMatrix.m1 << ", " << figure.worldMatrix.m5 << ", "
+		<< figure.worldMatrix.m9 << ", " << figure.worldMatrix.m13 << "\n" << figure.worldMatrix.m2 << ", " << figure.worldMatrix.m6
+		<< ", " << figure.worldMatrix.m10 << ", " << figure.worldMatrix.m14 << "\n" << figure.worldMatrix.m3 << ", " << figure.worldMatrix.m7
+		<< ", " << figure.worldMatrix.m11 << ", " << figure.worldMatrix.m15 << "\n";
 }
 
 void DrawAABB(MyAABB aabb, Color color)
