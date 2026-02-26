@@ -5,8 +5,6 @@
 
 void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
 {
-	Vector3 directions[3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }; //directions to rotate (x, y, z)
-
 	Mesh mesh = model.meshes[0];
 
 	obb.center = Vector3Zero();
@@ -56,6 +54,8 @@ void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
 	//	wereStartToRot = Vector3CrossProduct(rotAxis, directions[i]);
 	//	obb.localAxes[i] = directions[i] * cos(rotAngle * DEG2RAD) + wereStartToRot * sin(rotAngle * DEG2RAD) + rotAxis * Vector3DotProduct(rotAxis, directions[i]) * (1 - cos(rotAngle * DEG2RAD));
 	//}
+
+
 }
 
 
@@ -227,4 +227,19 @@ bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vect
 	}
 
 	return true;
+}
+
+Vector3 operator+(Vector3& vector1, Vector3& vector2)
+{
+	return { vector1.x + vector2.x, vector1.y + vector2.y, vector1.z + vector2.z };
+}
+
+Vector3 operator-(Vector3& vector1, Vector3& vector2)
+{
+	return { vector1.x - vector2.x, vector1.y - vector2.y, vector1.z - vector2.z };
+}
+
+float getVectorMagnitude(Vector3 vector)
+{
+	return (sqrt((vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z))); //pythagoras theroem
 }

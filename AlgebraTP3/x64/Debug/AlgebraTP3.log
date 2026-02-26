@@ -1,7 +1,9 @@
 ﻿  Main.cpp
-C:\Users\dylan\source\repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\AlgebraTP3\Main.cpp(39,6): warning C4326: return type of 'main' should be 'int' instead of 'void'
+C:\Users\Eluney\source\repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\AlgebraTP3\Main.cpp(43,6): warning C4326: return type of 'main' should be 'int' instead of 'void'
+  Math.cpp
+  Generating Code...
 LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/FORCE' specification
 raylib.lib(rcore.obj) : warning LNK4006: CloseWindow already defined in user32.lib(USER32.dll); second definition ignored
 LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
-C:\Users\dylan\Source\Repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\x64\Debug\AlgebraTP3.exe : warning LNK4088: image being generated due to /FORCE option; image may not run
-  AlgebraTP3.vcxproj -> C:\Users\dylan\Source\Repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\x64\Debug\AlgebraTP3.exe
+C:\Users\Eluney\Source\Repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\x64\Debug\AlgebraTP3.exe : warning LNK4088: image being generated due to /FORCE option; image may not run
+  AlgebraTP3.vcxproj -> C:\Users\Eluney\Source\Repos\IC-TSDV-Algebra-EluneyMousseigne-TPN3\x64\Debug\AlgebraTP3.exe

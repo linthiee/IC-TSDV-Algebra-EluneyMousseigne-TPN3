@@ -28,3 +28,8 @@ MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform);
 bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB);
 
 bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniquePlanes);
+
+Vector3 operator+(Vector3& vector1, Vector3& vector2);
+Vector3 operator-(Vector3& vector1, Vector3& vector2);
+
+float getVectorMagnitude(Vector3 vector);

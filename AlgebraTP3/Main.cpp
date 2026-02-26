@@ -6,7 +6,7 @@
 #include <iostream>
 #include "raymath.h"
 
-const int gridDivisions = 40;
+const int gridDivisions = 5;
 
 struct Figure
 {
@@ -22,12 +22,16 @@ struct Figure
 	Matrix worldMatrix;
 	MyAABB worldAABB;
 
+	MyOBB obb;
+
 	std::vector<Plane> allPlanes;
 };
 
 void printObjectInfo(Figure& figure);
 
 void DrawAABB(MyAABB aabb, Color color);
+void DrawOBB(MyOBB obb, Color color);
+
 void Draw(const int figureCount, Figure allFigures[6], Color modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints);
 
 void cameraControl(Camera3D& camera, float cameraSpeed);
@@ -82,8 +86,10 @@ void main()
 
 		allFigures[i].localAABB = CalculateLocalAABB(allFigures[i].model.meshes[0]);
 		allFigures[i].scale = { 1.0f, 1.0f, 1.0f };
-		allFigures[i].rotAxis = { 0.0f, 1.0f, 0.0f };
+		allFigures[i].rotAxis = { 3.0f, 1.0f, 8.5f };
 		allFigures[i].rotAngle = 0.0f;
+
+		CalculateOBB(allFigures[i].model, allFigures[i].obb, allFigures[i].rotAxis, allFigures[i].rotAngle);
 	}
 
 	allFigures[0].position = { 0.0f, 0.0f, 0.0f, };
@@ -144,7 +150,7 @@ void main()
 			other->worldAABB = GetUpdatedAABB(other->localAABB, other->worldMatrix);
 
 			bool aabbCollision = CheckCollisionAABB(controlledFigure->worldAABB, other->worldAABB);
-			 
+
 			if (aabbCollision)
 			{
 				if (IsKeyPressed(KEY_M))
@@ -299,8 +305,13 @@ void cameraControl(Camera3D& camera, float cameraSpeed)
 	if (IsKeyDown(KEY_E)) camera.position.y -= cameraSpeed;
 }
 
-void Draw(const int figureCount, Figure  allFigures[6], Color  modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints)
+void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints)
 {
+	for (int i = 0; i < figureCount; i++)
+	{
+		DrawOBB(allFigures[i].obb, BLUE);
+	}
+
 	for (int i = 0; i < figureCount; i++)
 	{
 		DrawModelEx(allFigures[i].model, allFigures[i].position, allFigures[i].rotAxis, allFigures[i].rotAngle, allFigures[i].scale, modelColors[i]);
@@ -310,6 +321,40 @@ void Draw(const int figureCount, Figure  allFigures[6], Color  modelColors[6], b
 	if (controlledFigure)
 	{
 		DrawAABB(controlledFigure->worldAABB, controlledColor);
+
+		//local axes stored on the matrix
+		DrawLine3D(
+			controlledFigure->position,
+			Vector3Add(
+				controlledFigure->position,
+				Vector3Scale(Vector3{
+					controlledFigure->worldMatrix.m0,
+					controlledFigure->worldMatrix.m1,
+					controlledFigure->worldMatrix.m2
+				}
+		, 10.0f)), MAGENTA); //right
+
+		DrawLine3D(
+			controlledFigure->position,
+			Vector3Add(
+				controlledFigure->position,
+				Vector3Scale(Vector3{
+					controlledFigure->worldMatrix.m4,
+					controlledFigure->worldMatrix.m5,
+					controlledFigure->worldMatrix.m6
+				}
+			, 10.0f)), GOLD); //up
+
+		DrawLine3D(
+			controlledFigure->position,
+			Vector3Add(
+				controlledFigure->position,
+				Vector3Scale(Vector3{
+							controlledFigure->worldMatrix.m8,
+							controlledFigure->worldMatrix.m9,
+							controlledFigure->worldMatrix.m10
+				}
+				, 10.0f)), DARKGREEN); //left
 	}
 
 	for (int i = 0; i < figureCount; i++)
@@ -368,6 +413,14 @@ void printObjectInfo(Figure& figure)
 		<< figure.worldMatrix.m9 << ", " << figure.worldMatrix.m13 << "\n" << figure.worldMatrix.m2 << ", " << figure.worldMatrix.m6
 		<< ", " << figure.worldMatrix.m10 << ", " << figure.worldMatrix.m14 << "\n" << figure.worldMatrix.m3 << ", " << figure.worldMatrix.m7
 		<< ", " << figure.worldMatrix.m11 << ", " << figure.worldMatrix.m15 << "\n";
+
+	std::cout << "m pos: " << figure.worldMatrix.m12 << ", " << figure.worldMatrix.m13 << ", " << figure.worldMatrix.m14 << "\n";
+	std::cout << "m rotation angle: " << figure.worldMatrix.m8 << " m figure rotation axis: " << "0, 1, 0" << "\n";
+	std::cout << "m scale: " << getVectorMagnitude(Vector3{
+					figure.worldMatrix.m0,
+					figure.worldMatrix.m1,
+					figure.worldMatrix.m2
+		}) << "\n";
 }
 
 void DrawAABB(MyAABB aabb, Color color)
@@ -386,4 +439,9 @@ void DrawAABB(MyAABB aabb, Color color)
 	};
 
 	DrawCubeWiresV(center, size, color);
+}
+
+void DrawOBB(MyOBB obb, Color color)
+{
+	//DrawLine3D(obb.center - obb.halfSizes, obb.center + obb.halfSizes, color);
 }
