@@ -86,10 +86,10 @@ void main()
 
 		allFigures[i].localAABB = CalculateLocalAABB(allFigures[i].model.meshes[0]);
 		allFigures[i].scale = { 1.0f, 1.0f, 1.0f };
-		allFigures[i].rotAxis = { 3.0f, 1.0f, 8.5f };
+		allFigures[i].rotAxis = { 0.0f, 1.0f, 0.0f };
 		allFigures[i].rotAngle = 0.0f;
 
-		CalculateOBB(allFigures[i].model, allFigures[i].obb, allFigures[i].rotAxis, allFigures[i].rotAngle);
+		CalculateOBB(allFigures[i].model, allFigures[i].obb, allFigures[i].worldMatrix);
 	}
 
 	allFigures[0].position = { 0.0f, 0.0f, 0.0f, };
@@ -136,6 +136,7 @@ void main()
 
 		controlledFigure->worldMatrix = MatrixMultiply(MatrixMultiply(matScaleA, matRotA), matTransA);
 		controlledFigure->worldAABB = GetUpdatedAABB(controlledFigure->localAABB, controlledFigure->worldMatrix);
+		UpdateOBB(controlledFigure->obb, controlledFigure->worldMatrix);
 
 		for (int i = 0; i < figureCount; i++)
 		{
@@ -307,10 +308,6 @@ void cameraControl(Camera3D& camera, float cameraSpeed)
 
 void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints)
 {
-	for (int i = 0; i < figureCount; i++)
-	{
-		DrawOBB(allFigures[i].obb, BLUE);
-	}
 
 	for (int i = 0; i < figureCount; i++)
 	{
@@ -327,34 +324,19 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(Vector3{
-					controlledFigure->worldMatrix.m0,
-					controlledFigure->worldMatrix.m1,
-					controlledFigure->worldMatrix.m2
-				}
-		, 10.0f)), MAGENTA); //right
+		Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), MAGENTA); //right
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(Vector3{
-					controlledFigure->worldMatrix.m4,
-					controlledFigure->worldMatrix.m5,
-					controlledFigure->worldMatrix.m6
-				}
-			, 10.0f)), GOLD); //up
+				Vector3Scale(controlledFigure->obb.localAxes[1], 10.0f)), GOLD); //up
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(Vector3{
-							controlledFigure->worldMatrix.m8,
-							controlledFigure->worldMatrix.m9,
-							controlledFigure->worldMatrix.m10
-				}
-				, 10.0f)), DARKGREEN); //left
+				Vector3Scale(controlledFigure->obb.localAxes[2], 10.0f)), DARKGREEN); //left
 	}
 
 	for (int i = 0; i < figureCount; i++)
@@ -373,6 +355,13 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 			DrawPoint3D(gridPoints[idx], finalCollision ? RED : BLUE);
 		}
 	}
+
+	for (int i = 0; i < figureCount; i++)
+	{
+		//DrawOBB(allFigures[i].obb);
+	}
+
+	DrawOBB(controlledFigure->obb);
 
 	DrawGrid(20, 1.0f);
 	EndMode3D();
@@ -439,9 +428,4 @@ void DrawAABB(MyAABB aabb, Color color)
 	};
 
 	DrawCubeWiresV(center, size, color);
-}
-
-void DrawOBB(MyOBB obb, Color color)
-{
-	//DrawLine3D(obb.center - obb.halfSizes, obb.center + obb.halfSizes, color);
 }

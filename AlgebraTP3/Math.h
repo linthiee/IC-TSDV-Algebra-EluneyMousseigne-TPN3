@@ -21,7 +21,10 @@ struct Plane
     float d;
 };
 
-void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle);
+void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix);
+void UpdateOBB(MyOBB& obb, Matrix worldMatrix);
+void DrawOBB(MyOBB obb);
+
 void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes);
 MyAABB CalculateLocalAABB(Mesh mesh);
 MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform);

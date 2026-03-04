@@ -3,7 +3,7 @@
 #include "raymath.h"
 #include <iostream>
 
-void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
+void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix)
 {
 	Mesh mesh = model.meshes[0];
 
@@ -47,17 +47,86 @@ void CalculateOBB(Model model, MyOBB& obb, Vector3 rotAxis, float rotAngle)
 	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f); //get the center from the min and max of the obb (half of min + max)
 	obb.halfSizes = Vector3Scale(Vector3Subtract(max, min), 0.5f); //get the halfsize of the obb
 
-	//Vector3 wereStartToRot = Vector3Zero();
+	obb.localAxes[0] = Vector3{
+					worldMatrix.m0,
+					worldMatrix.m1,
+					worldMatrix.m2
+	};
 
-	//for (int i = 0; i < 3; i++)
-	//{
-	//	wereStartToRot = Vector3CrossProduct(rotAxis, directions[i]);
-	//	obb.localAxes[i] = directions[i] * cos(rotAngle * DEG2RAD) + wereStartToRot * sin(rotAngle * DEG2RAD) + rotAxis * Vector3DotProduct(rotAxis, directions[i]) * (1 - cos(rotAngle * DEG2RAD));
-	//}
+	obb.localAxes[1] = Vector3{
+					worldMatrix.m4,
+					worldMatrix.m5,
+					worldMatrix.m6
+	};
+
+	obb.localAxes[2] = Vector3{
+					worldMatrix.m8,
+					worldMatrix.m9,
+					worldMatrix.m10
+	};
+};
 
 
+void UpdateOBB(MyOBB& obb, Matrix worldMatrix)
+{
+	obb.localAxes[0] = Vector3{
+				worldMatrix.m0,
+				worldMatrix.m1,
+				worldMatrix.m2
+	};
+
+	obb.localAxes[1] = Vector3{
+					worldMatrix.m4,
+					worldMatrix.m5,
+					worldMatrix.m6
+	};
+
+	obb.localAxes[2] = Vector3{
+					worldMatrix.m8,
+					worldMatrix.m9,
+					worldMatrix.m10
+	};
 }
 
+void DrawOBB(MyOBB obb)
+{
+	//DrawLine3D({ obb.center.x, (obb.center.y + obb.halfSizes.y) - obb.halfSizes.x, obb.center.z },
+	//	{ obb.center.x + obb.halfSizes.x, (obb.center.y + obb.halfSizes.y), obb.center.z }, MAGENTA);
+
+	Vector3 corner1 = { obb.center.x + obb.halfSizes.x,obb.center.y + obb.halfSizes.y ,obb.center.z + obb.halfSizes.z };
+	Vector3 corner2 = { obb.center.x + obb.halfSizes.x,obb.center.y + obb.halfSizes.y ,obb.center.z - obb.halfSizes.z };
+	Vector3 corner3 = { obb.center.x + obb.halfSizes.x,obb.center.y - obb.halfSizes.y ,obb.center.z - obb.halfSizes.z };
+	Vector3 corner4 = { obb.center.x + obb.halfSizes.x,obb.center.y - obb.halfSizes.y ,obb.center.z + obb.halfSizes.z };
+	Vector3 corner5 = { obb.center.x - obb.halfSizes.x,obb.center.y + obb.halfSizes.y ,obb.center.z + obb.halfSizes.z };
+	Vector3 corner6 = { obb.center.x - obb.halfSizes.x,obb.center.y + obb.halfSizes.y ,obb.center.z - obb.halfSizes.z };
+	Vector3 corner7 = { obb.center.x - obb.halfSizes.x,obb.center.y - obb.halfSizes.y ,obb.center.z - obb.halfSizes.z };
+	Vector3 corner8 = { obb.center.x - obb.halfSizes.x,obb.center.y - obb.halfSizes.y ,obb.center.z + obb.halfSizes.z };
+	
+
+	DrawLine3D(corner1,corner2,BLUE);
+	DrawLine3D(corner2,corner3, BLUE);
+	DrawLine3D(corner3,corner4,BLUE);
+	DrawLine3D(corner4,corner1,BLUE);
+
+	DrawLine3D(corner5,corner6,BLUE);
+	DrawLine3D(corner6,corner7,BLUE);
+	DrawLine3D(corner7,corner8,BLUE);
+	DrawLine3D(corner8,corner5,BLUE);
+
+	DrawLine3D(corner1,corner5,BLUE);
+	DrawLine3D(corner2,corner6,BLUE);
+	DrawLine3D(corner3,corner7,BLUE);
+	DrawLine3D(corner4,corner8,BLUE);
+
+	DrawSphere(corner1,0.05f, MAGENTA);
+	DrawSphere(corner2,0.05f, MAGENTA);
+	DrawSphere(corner3,0.05f, MAGENTA);
+	DrawSphere(corner4,0.05f, MAGENTA);
+	DrawSphere(corner5, 0.05f, MAGENTA);
+	DrawSphere(corner6, 0.05f, MAGENTA);
+	DrawSphere(corner7, 0.05f, MAGENTA);
+	DrawSphere(corner8, 0.05f, MAGENTA);
+}
 
 void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes) //calculate all the object normals outside of the update loop for better performance (and to save unecessary process)
 {
