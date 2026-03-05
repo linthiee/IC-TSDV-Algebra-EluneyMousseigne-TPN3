@@ -32,7 +32,7 @@ void printObjectInfo(Figure& figure);
 void DrawAABB(MyAABB aabb, Color color);
 void DrawOBB(MyOBB obb);
 
-void Draw(const int figureCount, Figure allFigures[6], Color modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints);
+void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bool finalCollision, bool obbCollision, bool aabbCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints);
 
 void cameraControl(Camera3D& camera, float cameraSpeed);
 
@@ -104,6 +104,8 @@ void main()
 
 	bool finalCollision = false;
 	bool broadPhaseCollision = false;
+	bool aabbCollision = false;
+
 	std::vector<Vector3> gridPoints;
 
 	SetTargetFPS(60);
@@ -123,6 +125,7 @@ void main()
 
 		finalCollision = false;
 		broadPhaseCollision = false;
+		aabbCollision = false;
 		gridPoints.clear();
 
 		if (!controlledFigure)
@@ -152,76 +155,90 @@ void main()
 			other->worldMatrix = MatrixMultiply(MatrixMultiply(matScaleB, matRotB), matTransB);
 			other->worldAABB = GetUpdatedAABB(other->localAABB, other->worldMatrix);
 
-			bool aabbCollision = CheckCollisionAABB(controlledFigure->worldAABB, other->worldAABB);
+			Vector3 localCenter = Vector3Scale(Vector3Add(other->localAABB.min, other->localAABB.max), 0.5f);
+			UpdateOBB(other->obb, other->worldMatrix, localCenter);
 
-			if (aabbCollision)
+			bool currentAABBCollision = CheckCollisionAABB(controlledFigure->worldAABB, other->worldAABB);
+
+			if (currentAABBCollision)
 			{
+				aabbCollision = true; 
+
 				if (IsKeyPressed(KEY_M))
 				{
 					std::cout << "\n\n\n";
 					printObjectInfo(*controlledFigure);
 				}
 
-				broadPhaseCollision = true;
+				bool currentOBBCollision = CheckCollisionSAT(controlledFigure->obb, other->obb);
 
-				MyAABB intersectionBB;
-				intersectionBB.min.x = fmaxf(controlledFigure->worldAABB.min.x, other->worldAABB.min.x);
-				intersectionBB.min.y = fmaxf(controlledFigure->worldAABB.min.y, other->worldAABB.min.y);
-				intersectionBB.min.z = fmaxf(controlledFigure->worldAABB.min.z, other->worldAABB.min.z);
-				intersectionBB.max.x = fminf(controlledFigure->worldAABB.max.x, other->worldAABB.max.x);
-				intersectionBB.max.y = fminf(controlledFigure->worldAABB.max.y, other->worldAABB.max.y);
-				intersectionBB.max.z = fminf(controlledFigure->worldAABB.max.z, other->worldAABB.max.z);
-
-				Vector3 size = Vector3Subtract(intersectionBB.max, intersectionBB.min);
-
-				Vector3 step;
-				if (gridDivisions < 2)
+				if (currentOBBCollision)
 				{
-					step = { 0.0f, 0.0f, 0.0f };
-				}
-				else
-				{
-					step.x = size.x / (gridDivisions - 1);
-					step.y = size.y / (gridDivisions - 1);
-					step.z = size.z / (gridDivisions - 1);
-				}
+					broadPhaseCollision = true;
 
-				bool stopChecking = false;
+					MyAABB intersectionBB;
+					intersectionBB.min.x = fmaxf(controlledFigure->worldAABB.min.x, other->worldAABB.min.x);
+					intersectionBB.min.y = fmaxf(controlledFigure->worldAABB.min.y, other->worldAABB.min.y);
+					intersectionBB.min.z = fmaxf(controlledFigure->worldAABB.min.z, other->worldAABB.min.z);
+					intersectionBB.max.x = fminf(controlledFigure->worldAABB.max.x, other->worldAABB.max.x);
+					intersectionBB.max.y = fminf(controlledFigure->worldAABB.max.y, other->worldAABB.max.y);
+					intersectionBB.max.z = fminf(controlledFigure->worldAABB.max.z, other->worldAABB.max.z);
 
-				for (int iz = 0; iz < gridDivisions; iz++)
-				{
-					if (stopChecking)
+					Vector3 size = Vector3Subtract(intersectionBB.max, intersectionBB.min);
+
+					Vector3 step;
+					if (gridDivisions < 2)
 					{
-						break;
+						step = { 0.0f, 0.0f, 0.0f };
+					}
+					else
+					{
+						step.x = size.x / (gridDivisions - 1);
+						step.y = size.y / (gridDivisions - 1);
+						step.z = size.z / (gridDivisions - 1);
 					}
 
-					float z = (gridDivisions < 2) ? intersectionBB.min.z + size.z * 0.5f : intersectionBB.min.z + step.z * iz;
+					bool stopChecking = false;
 
-					for (int iy = 0; iy < gridDivisions; iy++)
+					for (int iz = 0; iz < gridDivisions; iz++)
 					{
 						if (stopChecking)
 						{
 							break;
 						}
-						float y = (gridDivisions < 2) ? intersectionBB.min.y + size.y * 0.5f : intersectionBB.min.y + step.y * iy;
 
-						for (int ix = 0; ix < gridDivisions; ix++)
+						float z = (gridDivisions < 2) ? intersectionBB.min.z + size.z * 0.5f : intersectionBB.min.z + step.z * iz;
+
+						for (int iy = 0; iy < gridDivisions; iy++)
 						{
-							float x = (gridDivisions < 2) ? intersectionBB.min.x + size.x * 0.5f : intersectionBB.min.x + step.x * ix;
-
-							Vector3 point = { x, y, z };
-							gridPoints.push_back(point);
-
-							bool inA = IsPointInsideMesh(point, controlledFigure->model, controlledFigure->worldMatrix, controlledFigure->allPlanes);
-							bool inB = IsPointInsideMesh(point, other->model, other->worldMatrix, other->allPlanes);
-
-							if (inA && inB)
+							if (stopChecking)
 							{
-								finalCollision = true;
-								stopChecking = true;
 								break;
 							}
+							float y = (gridDivisions < 2) ? intersectionBB.min.y + size.y * 0.5f : intersectionBB.min.y + step.y * iy;
 
+							for (int ix = 0; ix < gridDivisions; ix++)
+							{
+								float x = (gridDivisions < 2) ? intersectionBB.min.x + size.x * 0.5f : intersectionBB.min.x + step.x * ix;
+
+								Vector3 point = { x, y, z };
+								gridPoints.push_back(point);
+
+								bool inA = IsPointInsideMesh(point, controlledFigure->model, controlledFigure->worldMatrix, controlledFigure->allPlanes);
+								bool inB = IsPointInsideMesh(point, other->model, other->worldMatrix, other->allPlanes);
+
+								if (inA && inB)
+								{
+									finalCollision = true;
+									stopChecking = true;
+									break;
+								}
+
+								if (gridDivisions < 2)
+								{
+									break;
+								}
+							}
 							if (gridDivisions < 2)
 							{
 								break;
@@ -232,16 +249,12 @@ void main()
 							break;
 						}
 					}
-					if (gridDivisions < 2)
-					{
-						break;
-					}
 				}
-			}
 
-			if (finalCollision)
-			{
-				break;
+				if (finalCollision)
+				{
+					break;
+				}
 			}
 		}
 
@@ -250,7 +263,7 @@ void main()
 
 		BeginMode3D(camera);
 
-		Draw(figureCount, allFigures, modelColors, finalCollision, broadPhaseCollision, controlledFigure, gridPoints);
+		Draw(figureCount, allFigures, modelColors, finalCollision, broadPhaseCollision, aabbCollision, controlledFigure, gridPoints);
 
 		EndDrawing();
 	}
@@ -308,36 +321,34 @@ void cameraControl(Camera3D& camera, float cameraSpeed)
 	if (IsKeyDown(KEY_E)) camera.position.y -= cameraSpeed;
 }
 
-void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints)
+void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bool finalCollision, bool obbCollision, bool aabbCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints)
 {
-
 	for (int i = 0; i < figureCount; i++)
 	{
 		DrawModelEx(allFigures[i].model, allFigures[i].position, allFigures[i].rotAxis, allFigures[i].rotAngle, allFigures[i].scale, modelColors[i]);
 	}
 
-	Color controlledColor = finalCollision ? GOLD : (broadPhaseCollision ? ORANGE : LIME);
+	Color controlledColor = finalCollision ? GOLD : (obbCollision ? ORANGE : LIME);
 	if (controlledFigure)
 	{
-
 		//local axes stored on the matrix
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), RED); //right
+				Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), RED); //x
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(controlledFigure->obb.localAxes[1], 10.0f)), GREEN); //up
+				Vector3Scale(controlledFigure->obb.localAxes[1], 10.0f)), GREEN); //y
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(controlledFigure->obb.localAxes[2], 10.0f)), BLUE); //left
+				Vector3Scale(controlledFigure->obb.localAxes[2], 10.0f)), BLUE); //z
 	}
 
 	for (int i = 0; i < figureCount; i++)
@@ -346,18 +357,28 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 		{
 			continue;
 		}
-		//	DrawAABB(allFigures[i].worldAABB, DARKGRAY);
+		DrawOBB(allFigures[i].obb);
 	}
 
-	if (broadPhaseCollision)
+	for (int i = 0; i < figureCount; i++)
+	{
+		if (&allFigures[i] == controlledFigure)
+		{
+			continue;
+		}
+	//	DrawAABB(allFigures[i].worldAABB, BLACK);
+	}
+
+	if (obbCollision)
 	{
 		for (int idx = 0; idx < (int)gridPoints.size(); idx++)
 		{
-			DrawPoint3D(gridPoints[idx], finalCollision ? RED : BLUE);
+			DrawSphere(gridPoints[idx], 0.05f, finalCollision ? RED : BLUE);
 		}
 	}
 
 	DrawOBB(controlledFigure->obb);
+	//DrawAABB(controlledFigure->worldAABB, BLACK);
 
 	DrawGrid(20, 1.0f);
 	EndMode3D();
@@ -370,7 +391,11 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 	{
 		DrawText("GRID COLLISION", 20, 50, 20, RED);
 	}
-	else if (broadPhaseCollision)
+	else if (obbCollision)
+	{
+		DrawText("OBB Collision", 20, 50, 20, ORANGE);
+	}
+	else if (aabbCollision)
 	{
 		DrawText("AABB Collision", 20, 50, 20, ORANGE);
 	}
@@ -428,61 +453,33 @@ void DrawAABB(MyAABB aabb, Color color)
 
 void DrawOBB(MyOBB obb)
 {
-	Vector3 dirX =
-	{
-		obb.localAxes[0].x * obb.halfSizes.x,
-		obb.localAxes[0].y * obb.halfSizes.x,
-		obb.localAxes[0].z * obb.halfSizes.x
-	};
 
-	Vector3 dirY =
-	{
-		obb.localAxes[1].x * obb.halfSizes.y,
-		obb.localAxes[1].y * obb.halfSizes.y,
-		obb.localAxes[1].z * obb.halfSizes.y
-	};
-
-	Vector3 dirZ =
-	{
-		obb.localAxes[2].x * obb.halfSizes.z,
-		obb.localAxes[2].y * obb.halfSizes.z,
-		obb.localAxes[2].z * obb.halfSizes.z
-	};
-
-	Vector3 corner1 = { obb.center.x + dirX.x + dirY.x + dirZ.x, obb.center.y + dirX.y + dirY.y + dirZ.y, obb.center.z + dirX.z + dirY.z + dirZ.z };
-	Vector3 corner2 = { obb.center.x + dirX.x + dirY.x - dirZ.x, obb.center.y + dirX.y + dirY.y - dirZ.y, obb.center.z + dirX.z + dirY.z - dirZ.z };
-	Vector3 corner3 = { obb.center.x + dirX.x - dirY.x - dirZ.x, obb.center.y + dirX.y - dirY.y - dirZ.y, obb.center.z + dirX.z - dirY.z - dirZ.z };
-	Vector3 corner4 = { obb.center.x + dirX.x - dirY.x + dirZ.x, obb.center.y + dirX.y - dirY.y + dirZ.y, obb.center.z + dirX.z - dirY.z + dirZ.z };
-
-	Vector3 corner5 = { obb.center.x - dirX.x + dirY.x + dirZ.x, obb.center.y - dirX.y + dirY.y + dirZ.y, obb.center.z - dirX.z + dirY.z + dirZ.z };
-	Vector3 corner6 = { obb.center.x - dirX.x + dirY.x - dirZ.x, obb.center.y - dirX.y + dirY.y - dirZ.y, obb.center.z - dirX.z + dirY.z - dirZ.z };
-	Vector3 corner7 = { obb.center.x - dirX.x - dirY.x - dirZ.x, obb.center.y - dirX.y - dirY.y - dirZ.y, obb.center.z - dirX.z - dirY.z - dirZ.z };
-	Vector3 corner8 = { obb.center.x - dirX.x - dirY.x + dirZ.x, obb.center.y - dirX.y - dirY.y + dirZ.y, obb.center.z - dirX.z - dirY.z + dirZ.z };
+	std::vector<Vector3> corners = GetOBBVertices(obb);
 
 	//+X face
-	DrawLine3D(corner1, corner2, BLUE);
-	DrawLine3D(corner2, corner3, BLUE);
-	DrawLine3D(corner3, corner4, BLUE);
-	DrawLine3D(corner4, corner1, BLUE);
+	DrawLine3D(corners[0], corners[1], BLUE);
+	DrawLine3D(corners[1], corners[2], BLUE);
+	DrawLine3D(corners[2], corners[3], BLUE);
+	DrawLine3D(corners[3], corners[0], BLUE);
 
 	//-X face
-	DrawLine3D(corner5, corner6, BLUE);
-	DrawLine3D(corner6, corner7, BLUE);
-	DrawLine3D(corner7, corner8, BLUE);
-	DrawLine3D(corner8, corner5, BLUE);
+	DrawLine3D(corners[4], corners[5], BLUE);
+	DrawLine3D(corners[5], corners[6], BLUE);
+	DrawLine3D(corners[6], corners[7], BLUE);
+	DrawLine3D(corners[7], corners[4], BLUE);
 
 	//connecting faces
-	DrawLine3D(corner1, corner5, BLUE);
-	DrawLine3D(corner2, corner6, BLUE);
-	DrawLine3D(corner3, corner7, BLUE);
-	DrawLine3D(corner4, corner8, BLUE);
+	DrawLine3D(corners[0], corners[4], BLUE);
+	DrawLine3D(corners[1], corners[5], BLUE);
+	DrawLine3D(corners[2], corners[6], BLUE);
+	DrawLine3D(corners[3], corners[7], BLUE);
 
-	DrawSphere(corner1, 0.05f, MAGENTA);
-	DrawSphere(corner2, 0.05f, MAGENTA);
-	DrawSphere(corner3, 0.05f, MAGENTA);
-	DrawSphere(corner4, 0.05f, MAGENTA);
-	DrawSphere(corner5, 0.05f, MAGENTA);
-	DrawSphere(corner6, 0.05f, MAGENTA);
-	DrawSphere(corner7, 0.05f, MAGENTA);
-	DrawSphere(corner8, 0.05f, MAGENTA);
+	DrawSphere(corners[0], 0.05f, MAGENTA);
+	DrawSphere(corners[1], 0.05f, MAGENTA);
+	DrawSphere(corners[2], 0.05f, MAGENTA);
+	DrawSphere(corners[3], 0.05f, MAGENTA);
+	DrawSphere(corners[4], 0.05f, MAGENTA);
+	DrawSphere(corners[5], 0.05f, MAGENTA);
+	DrawSphere(corners[6], 0.05f, MAGENTA);
+	DrawSphere(corners[7], 0.05f, MAGENTA);
 }

@@ -47,9 +47,9 @@ void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix)
 	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f); //get the local center from the min and max of the obb (half of min + max)
 	obb.halfSizes = Vector3Scale(Vector3Subtract(max, min), 0.5f); //get the halfsize of the obb
 
-	obb.localAxes[0] = Vector3Normalize({ worldMatrix.m0, worldMatrix.m1, worldMatrix.m2 });
-	obb.localAxes[1] = Vector3Normalize({ worldMatrix.m4, worldMatrix.m5, worldMatrix.m6 });
-	obb.localAxes[2] = Vector3Normalize({ worldMatrix.m8, worldMatrix.m9, worldMatrix.m10 });
+	obb.localAxes[0] = Vector3Normalize(Vector3{ worldMatrix.m0, worldMatrix.m1, worldMatrix.m2 });
+	obb.localAxes[1] = Vector3Normalize(Vector3{ worldMatrix.m4, worldMatrix.m5, worldMatrix.m6 });
+	obb.localAxes[2] = Vector3Normalize(Vector3{ worldMatrix.m8, worldMatrix.m9, worldMatrix.m10 });
 
 	obb.center = Vector3Transform(obb.center, worldMatrix);
 };
@@ -221,6 +221,106 @@ bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB)
 	return true;
 }
 
+std::vector<Vector3> GetOBBVertices(MyOBB obb)
+{
+	std::vector<Vector3> vertices(8);
+
+	// //calculate real longitud of each direction axis
+	Vector3 dirX = { obb.localAxes[0].x * obb.halfSizes.x, obb.localAxes[0].y * obb.halfSizes.x, obb.localAxes[0].z * obb.halfSizes.x };
+	Vector3 dirY = { obb.localAxes[1].x * obb.halfSizes.y, obb.localAxes[1].y * obb.halfSizes.y, obb.localAxes[1].z * obb.halfSizes.y };
+	Vector3 dirZ = { obb.localAxes[2].x * obb.halfSizes.z, obb.localAxes[2].y * obb.halfSizes.z, obb.localAxes[2].z * obb.halfSizes.z };
+
+	vertices[0] = obb.center + dirX + dirY + dirZ;
+	vertices[1] = obb.center + dirX + dirY - dirZ;
+	vertices[2] = obb.center + dirX - dirY - dirZ;
+	vertices[3] = obb.center + dirX - dirY + dirZ;
+	vertices[4] = obb.center - dirX + dirY + dirZ;
+	vertices[5] = obb.center - dirX + dirY - dirZ;
+	vertices[6] = obb.center - dirX - dirY - dirZ;
+	vertices[7] = obb.center - dirX - dirY + dirZ;
+
+	return vertices;
+}
+
+void GetMinMaxProjection(std::vector<Vector3>& vertices, Vector3 axis, float& minProj, float& maxProj)
+{
+	minProj = Vector3DotProduct(vertices[0], axis);
+	maxProj = minProj;
+
+	for (int i = 1; i < 8; i++)
+	{
+		float projection = Vector3DotProduct(vertices[i], axis);
+
+		if (projection < minProj) minProj = projection;
+		if (projection > maxProj) maxProj = projection;
+	}
+}
+
+bool IsSeparatingAxis(MyOBB obb1, MyOBB obb2, Vector3 axis)
+{
+	//skip invalid axis
+	if (getVectorMagnitude(axis) < EPSILON) return false;
+
+	axis = Vector3Normalize(axis);
+
+	//get the 8 vertex of each obb
+	std::vector<Vector3> vertex1 = GetOBBVertices(obb1);
+	std::vector<Vector3> vertex2 = GetOBBVertices(obb2);
+
+	//project to get the shadows
+	float min1 = 0;
+	float min2 = 0;
+
+	float max1 = 0;
+	float max2 = 0;
+
+	GetMinMaxProjection(vertex1, axis, min1, max1);
+	GetMinMaxProjection(vertex2, axis, min2, max2);
+
+	//check if they superpone
+	if (max1 < min2 || max2 < min1)
+	{
+		return true; //no collision
+	}
+
+	return false; //shadows overlap, keep checking
+}
+
+bool CheckCollisionSAT(MyOBB obb1, MyOBB obb2)
+{
+	std::vector<Vector3> axesToTest;
+
+	axesToTest.push_back(obb1.localAxes[0]);
+	axesToTest.push_back(obb1.localAxes[1]);
+	axesToTest.push_back(obb1.localAxes[2]);
+
+	axesToTest.push_back(obb2.localAxes[0]);
+	axesToTest.push_back(obb2.localAxes[1]);
+	axesToTest.push_back(obb2.localAxes[2]);
+
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			axesToTest.push_back(Vector3CrossProduct(obb1.localAxes[i], obb2.localAxes[j]));
+		}
+	}
+
+	for (int i = 0; i < axesToTest.size(); i++)
+	{
+		Vector3 currentAxis = axesToTest[i];
+
+		bool foundGap = IsSeparatingAxis(obb1, obb2, currentAxis);
+
+		if (foundGap == true)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniquePlanes)
 {
 	if (model.meshCount == 0)
@@ -261,14 +361,4 @@ Vector3 operator-(Vector3& vector1, Vector3& vector2)
 float getVectorMagnitude(Vector3 vector)
 {
 	return (sqrt((vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z))); //pythagoras theroem
-}
-
-float getVectorMagnitude(Vector2 vector)
-{
-	return (sqrt((vector.x * vector.x) + (vector.y * vector.y))); //pythagoras theroem
-}
-
-float getVector2Angle(Vector2 v1, Vector2 v2)
-{
-	return acos(((v1.x * v2.x) + (v1.y * v2.y) / (getVectorMagnitude(v1) * getVectorMagnitude(v2))));
 }

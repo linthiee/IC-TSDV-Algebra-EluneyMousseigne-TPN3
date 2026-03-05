@@ -29,12 +29,15 @@ MyAABB CalculateLocalAABB(Mesh mesh);
 MyAABB GetUpdatedAABB(MyAABB localBB, Matrix transform);
 bool CheckCollisionAABB(MyAABB aabbA, MyAABB aabbB);
 
+std::vector<Vector3> GetOBBVertices(MyOBB obb);
+void GetMinMaxProjection(std::vector<Vector3>& vertices, Vector3 axis, float& minProj, float& maxProj);
+bool IsSeparatingAxis(MyOBB obb1, MyOBB obb2, Vector3 axis);
+
+bool CheckCollisionSAT(MyOBB obb1, MyOBB obb2);
+
 bool IsPointInsideMesh(Vector3 point, Model model, Matrix worldMatrix, std::vector<Plane>& uniquePlanes);
 
 Vector3 operator+(Vector3& vector1, Vector3& vector2);
 Vector3 operator-(Vector3& vector1, Vector3& vector2);
 
 float getVectorMagnitude(Vector3 vector);
-float getVectorMagnitude(Vector2 vector);
-
-float getVector2Angle(Vector2 v1, Vector2 v2);
