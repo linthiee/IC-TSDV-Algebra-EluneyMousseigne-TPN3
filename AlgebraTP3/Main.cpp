@@ -10,8 +10,6 @@ const int gridDivisions = 5;
 
 struct Figure
 {
-	Vector3 velocity;
-
 	std::string name;
 	Model model;
 	MyAABB localAABB;
@@ -60,9 +58,8 @@ void main()
 	allFigures[0].name = "Cube";
 	allFigures[0].model = LoadModel("res/cube.obj");
 
-
 	allFigures[1].name = "Decahedron";
-	allFigures[1].model = LoadModel("res/dodecahedron.obj");
+	allFigures[1].model = LoadModel("res/decahedron.obj");
 
 	allFigures[2].name = "Dodecahedron";
 	allFigures[2].model = LoadModel("res/dodecahedron.obj");
@@ -75,6 +72,13 @@ void main()
 
 	allFigures[5].name = "Tetrahedron";
 	allFigures[5].model = LoadModel("res/tetrahedron.obj");
+
+	allFigures[0].position = { 0.0f, 0.0f, 0.0f, };
+	allFigures[1].position = { 3.0f, 0.0f, 0.0f, };
+	allFigures[2].position = { 6.0f, 0.0f, 0.0f, };
+	allFigures[3].position = { -7.0f, 0.0f, 0.0f, };
+	allFigures[4].position = { -5.0f, 3.0f, 0.0f, };
+	allFigures[5].position = { -3.0f, 5.0f, 0.0f, };
 
 	for (int i = 0; i < figureCount; i++)
 	{
@@ -91,17 +95,9 @@ void main()
 		allFigures[i].scale = { 1.0f, 1.0f, 1.0f };
 		allFigures[i].rotAxis = { 0.0f, 1.0f, 0.0f };
 		allFigures[i].rotAngle = 0.0f;
-		allFigures[i].velocity = { 0.0f, 0.0f, 0.0f };
 
 		CalculateOBB(allFigures[i].model, allFigures[i].obb, allFigures[i].worldMatrix);
 	}
-
-	allFigures[0].position = { 0.0f, 0.0f, 0.0f, };
-	allFigures[1].position = { 3.0f, 0.0f, 0.0f, };
-	allFigures[2].position = { 6.0f, 0.0f, 0.0f, };
-	allFigures[3].position = { -7.0f, 0.0f, 0.0f, };
-	allFigures[4].position = { -5.0f, 3.0f, 0.0f, };
-	allFigures[5].position = { -3.0f, 5.0f, 0.0f, };
 
 	Figure* controlledFigure = &allFigures[0];
 	Color modelColors[] = { RED, BLUE, GREEN, MAGENTA, YELLOW, SKYBLUE };
@@ -140,7 +136,9 @@ void main()
 
 		controlledFigure->worldMatrix = MatrixMultiply(MatrixMultiply(matScaleA, matRotA), matTransA);
 		controlledFigure->worldAABB = GetUpdatedAABB(controlledFigure->localAABB, controlledFigure->worldMatrix);
-		UpdateOBB(controlledFigure->obb, controlledFigure->worldMatrix, controlledFigure->velocity);
+
+		Vector3 localCenter = Vector3Scale(Vector3Add(controlledFigure->localAABB.min, controlledFigure->localAABB.max), 0.5f);
+		UpdateOBB(controlledFigure->obb, controlledFigure->worldMatrix, localCenter);
 
 		for (int i = 0; i < figureCount; i++)
 		{
@@ -267,14 +265,12 @@ void main()
 
 void figureManipulation(Figure* controlledFigure)
 {
-	controlledFigure->velocity = { 0.0f,0.0f ,0.0f };
-
-	if (IsKeyDown(KEY_J)) controlledFigure->velocity.x -= 0.1f;
-	if (IsKeyDown(KEY_L)) controlledFigure->velocity.x += 0.1f;
-	if (IsKeyDown(KEY_I)) controlledFigure->velocity.z -= 0.1f;
-	if (IsKeyDown(KEY_K)) controlledFigure->velocity.z += 0.1f;
-	if (IsKeyDown(KEY_R)) controlledFigure->velocity.y += 0.1f;
-	if (IsKeyDown(KEY_F)) controlledFigure->velocity.y -= 0.1f;
+	if (IsKeyDown(KEY_J)) controlledFigure->position.x -= 0.1f;
+	if (IsKeyDown(KEY_L)) controlledFigure->position.x += 0.1f;
+	if (IsKeyDown(KEY_I)) controlledFigure->position.z -= 0.1f;
+	if (IsKeyDown(KEY_K)) controlledFigure->position.z += 0.1f;
+	if (IsKeyDown(KEY_R)) controlledFigure->position.y += 0.1f;
+	if (IsKeyDown(KEY_F)) controlledFigure->position.y -= 0.1f;
 	if (IsKeyDown(KEY_U)) controlledFigure->rotAngle -= 1.0f;
 	if (IsKeyDown(KEY_O)) controlledFigure->rotAngle += 1.0f;
 	if (IsKeyDown(KEY_Y))
@@ -290,8 +286,6 @@ void figureManipulation(Figure* controlledFigure)
 		if (controlledFigure->scale.y < minScale) controlledFigure->scale.y = minScale;
 		if (controlledFigure->scale.z < minScale) controlledFigure->scale.z = minScale;
 	}
-
-	controlledFigure->position += controlledFigure->velocity;
 }
 
 void figureSelector(Figure*& controlledFigure, Figure  allFigures[6])
@@ -302,8 +296,6 @@ void figureSelector(Figure*& controlledFigure, Figure  allFigures[6])
 	if (IsKeyDown(KEY_FOUR)) controlledFigure = &allFigures[3];
 	if (IsKeyDown(KEY_FIVE)) controlledFigure = &allFigures[4];
 	if (IsKeyDown(KEY_SIX)) controlledFigure = &allFigures[5];
-
-	controlledFigure->obb.center = controlledFigure->position;
 }
 
 void cameraControl(Camera3D& camera, float cameraSpeed)
@@ -327,14 +319,13 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 	Color controlledColor = finalCollision ? GOLD : (broadPhaseCollision ? ORANGE : LIME);
 	if (controlledFigure)
 	{
-		DrawAABB(controlledFigure->worldAABB, controlledColor);
 
 		//local axes stored on the matrix
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-		Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), RED); //right
+				Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), RED); //right
 
 		DrawLine3D(
 			controlledFigure->position,
@@ -355,7 +346,7 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 		{
 			continue;
 		}
-		DrawAABB(allFigures[i].worldAABB, DARKGRAY);
+		//	DrawAABB(allFigures[i].worldAABB, DARKGRAY);
 	}
 
 	if (broadPhaseCollision)
@@ -364,11 +355,6 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 		{
 			DrawPoint3D(gridPoints[idx], finalCollision ? RED : BLUE);
 		}
-	}
-
-	for (int i = 0; i < figureCount; i++)
-	{
-		//DrawOBB(allFigures[i].obb);
 	}
 
 	DrawOBB(controlledFigure->obb);
@@ -442,21 +428,21 @@ void DrawAABB(MyAABB aabb, Color color)
 
 void DrawOBB(MyOBB obb)
 {
-	Vector3 dirX = 
+	Vector3 dirX =
 	{
 		obb.localAxes[0].x * obb.halfSizes.x,
 		obb.localAxes[0].y * obb.halfSizes.x,
 		obb.localAxes[0].z * obb.halfSizes.x
 	};
 
-	Vector3 dirY = 
+	Vector3 dirY =
 	{
 		obb.localAxes[1].x * obb.halfSizes.y,
 		obb.localAxes[1].y * obb.halfSizes.y,
 		obb.localAxes[1].z * obb.halfSizes.y
 	};
 
-	Vector3 dirZ = 
+	Vector3 dirZ =
 	{
 		obb.localAxes[2].x * obb.halfSizes.z,
 		obb.localAxes[2].y * obb.halfSizes.z,

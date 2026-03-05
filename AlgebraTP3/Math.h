@@ -22,7 +22,7 @@ struct Plane
 };
 
 void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix);
-void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 velocity);
+void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 localCenter);
 
 void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes);
 MyAABB CalculateLocalAABB(Mesh mesh);

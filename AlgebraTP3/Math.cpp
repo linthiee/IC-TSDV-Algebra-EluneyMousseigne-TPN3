@@ -44,30 +44,18 @@ void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix)
 		}
 	}
 
-	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f); //get the center from the min and max of the obb (half of min + max)
+	obb.center = Vector3Scale(Vector3Add(min, max), 0.5f); //get the local center from the min and max of the obb (half of min + max)
 	obb.halfSizes = Vector3Scale(Vector3Subtract(max, min), 0.5f); //get the halfsize of the obb
 
-	obb.localAxes[0] = Vector3{
-					worldMatrix.m0,
-					worldMatrix.m1,
-					worldMatrix.m2
-	};
+	obb.localAxes[0] = Vector3Normalize({ worldMatrix.m0, worldMatrix.m1, worldMatrix.m2 });
+	obb.localAxes[1] = Vector3Normalize({ worldMatrix.m4, worldMatrix.m5, worldMatrix.m6 });
+	obb.localAxes[2] = Vector3Normalize({ worldMatrix.m8, worldMatrix.m9, worldMatrix.m10 });
 
-	obb.localAxes[1] = Vector3{
-					worldMatrix.m4,
-					worldMatrix.m5,
-					worldMatrix.m6
-	};
-
-	obb.localAxes[2] = Vector3{
-					worldMatrix.m8,
-					worldMatrix.m9,
-					worldMatrix.m10
-	};
+	obb.center = Vector3Transform(obb.center, worldMatrix);
 };
 
 
-void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 velocity)
+void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 localCenter)
 {
 	obb.localAxes[0] = Vector3{
 				worldMatrix.m0,
@@ -87,7 +75,7 @@ void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 velocity)
 					worldMatrix.m10
 	};
 
-	obb.center += velocity;
+	obb.center = Vector3Transform(localCenter, worldMatrix);
 }
 
 void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes) //calculate all the object normals outside of the update loop for better performance (and to save unecessary process)
