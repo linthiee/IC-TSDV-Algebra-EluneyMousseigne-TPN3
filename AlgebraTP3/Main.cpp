@@ -10,6 +10,8 @@ const int gridDivisions = 5;
 
 struct Figure
 {
+	Vector3 velocity;
+
 	std::string name;
 	Model model;
 	MyAABB localAABB;
@@ -30,7 +32,7 @@ struct Figure
 void printObjectInfo(Figure& figure);
 
 void DrawAABB(MyAABB aabb, Color color);
-void DrawOBB(MyOBB obb, Color color);
+void DrawOBB(MyOBB obb);
 
 void Draw(const int figureCount, Figure allFigures[6], Color modelColors[6], bool finalCollision, bool broadPhaseCollision, Figure* controlledFigure, std::vector<Vector3>& gridPoints);
 
@@ -58,8 +60,9 @@ void main()
 	allFigures[0].name = "Cube";
 	allFigures[0].model = LoadModel("res/cube.obj");
 
+
 	allFigures[1].name = "Decahedron";
-	allFigures[1].model = LoadModel("res/decahedron.obj");
+	allFigures[1].model = LoadModel("res/dodecahedron.obj");
 
 	allFigures[2].name = "Dodecahedron";
 	allFigures[2].model = LoadModel("res/dodecahedron.obj");
@@ -88,6 +91,7 @@ void main()
 		allFigures[i].scale = { 1.0f, 1.0f, 1.0f };
 		allFigures[i].rotAxis = { 0.0f, 1.0f, 0.0f };
 		allFigures[i].rotAngle = 0.0f;
+		allFigures[i].velocity = { 0.0f, 0.0f, 0.0f };
 
 		CalculateOBB(allFigures[i].model, allFigures[i].obb, allFigures[i].worldMatrix);
 	}
@@ -136,7 +140,7 @@ void main()
 
 		controlledFigure->worldMatrix = MatrixMultiply(MatrixMultiply(matScaleA, matRotA), matTransA);
 		controlledFigure->worldAABB = GetUpdatedAABB(controlledFigure->localAABB, controlledFigure->worldMatrix);
-		UpdateOBB(controlledFigure->obb, controlledFigure->worldMatrix);
+		UpdateOBB(controlledFigure->obb, controlledFigure->worldMatrix, controlledFigure->velocity);
 
 		for (int i = 0; i < figureCount; i++)
 		{
@@ -263,12 +267,14 @@ void main()
 
 void figureManipulation(Figure* controlledFigure)
 {
-	if (IsKeyDown(KEY_J)) controlledFigure->position.x -= 0.1f;
-	if (IsKeyDown(KEY_L)) controlledFigure->position.x += 0.1f;
-	if (IsKeyDown(KEY_I)) controlledFigure->position.z -= 0.1f;
-	if (IsKeyDown(KEY_K)) controlledFigure->position.z += 0.1f;
-	if (IsKeyDown(KEY_R)) controlledFigure->position.y += 0.1f;
-	if (IsKeyDown(KEY_F)) controlledFigure->position.y -= 0.1f;
+	controlledFigure->velocity = { 0.0f,0.0f ,0.0f };
+
+	if (IsKeyDown(KEY_J)) controlledFigure->velocity.x -= 0.1f;
+	if (IsKeyDown(KEY_L)) controlledFigure->velocity.x += 0.1f;
+	if (IsKeyDown(KEY_I)) controlledFigure->velocity.z -= 0.1f;
+	if (IsKeyDown(KEY_K)) controlledFigure->velocity.z += 0.1f;
+	if (IsKeyDown(KEY_R)) controlledFigure->velocity.y += 0.1f;
+	if (IsKeyDown(KEY_F)) controlledFigure->velocity.y -= 0.1f;
 	if (IsKeyDown(KEY_U)) controlledFigure->rotAngle -= 1.0f;
 	if (IsKeyDown(KEY_O)) controlledFigure->rotAngle += 1.0f;
 	if (IsKeyDown(KEY_Y))
@@ -284,6 +290,8 @@ void figureManipulation(Figure* controlledFigure)
 		if (controlledFigure->scale.y < minScale) controlledFigure->scale.y = minScale;
 		if (controlledFigure->scale.z < minScale) controlledFigure->scale.z = minScale;
 	}
+
+	controlledFigure->position += controlledFigure->velocity;
 }
 
 void figureSelector(Figure*& controlledFigure, Figure  allFigures[6])
@@ -294,6 +302,8 @@ void figureSelector(Figure*& controlledFigure, Figure  allFigures[6])
 	if (IsKeyDown(KEY_FOUR)) controlledFigure = &allFigures[3];
 	if (IsKeyDown(KEY_FIVE)) controlledFigure = &allFigures[4];
 	if (IsKeyDown(KEY_SIX)) controlledFigure = &allFigures[5];
+
+	controlledFigure->obb.center = controlledFigure->position;
 }
 
 void cameraControl(Camera3D& camera, float cameraSpeed)
@@ -324,19 +334,19 @@ void Draw(const int figureCount, Figure allFigures[6], Color  modelColors[6], bo
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-		Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), MAGENTA); //right
+		Vector3Scale(controlledFigure->obb.localAxes[0], 10.0f)), RED); //right
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(controlledFigure->obb.localAxes[1], 10.0f)), GOLD); //up
+				Vector3Scale(controlledFigure->obb.localAxes[1], 10.0f)), GREEN); //up
 
 		DrawLine3D(
 			controlledFigure->position,
 			Vector3Add(
 				controlledFigure->position,
-				Vector3Scale(controlledFigure->obb.localAxes[2], 10.0f)), DARKGREEN); //left
+				Vector3Scale(controlledFigure->obb.localAxes[2], 10.0f)), BLUE); //left
 	}
 
 	for (int i = 0; i < figureCount; i++)
@@ -428,4 +438,65 @@ void DrawAABB(MyAABB aabb, Color color)
 	};
 
 	DrawCubeWiresV(center, size, color);
+}
+
+void DrawOBB(MyOBB obb)
+{
+	Vector3 dirX = 
+	{
+		obb.localAxes[0].x * obb.halfSizes.x,
+		obb.localAxes[0].y * obb.halfSizes.x,
+		obb.localAxes[0].z * obb.halfSizes.x
+	};
+
+	Vector3 dirY = 
+	{
+		obb.localAxes[1].x * obb.halfSizes.y,
+		obb.localAxes[1].y * obb.halfSizes.y,
+		obb.localAxes[1].z * obb.halfSizes.y
+	};
+
+	Vector3 dirZ = 
+	{
+		obb.localAxes[2].x * obb.halfSizes.z,
+		obb.localAxes[2].y * obb.halfSizes.z,
+		obb.localAxes[2].z * obb.halfSizes.z
+	};
+
+	Vector3 corner1 = { obb.center.x + dirX.x + dirY.x + dirZ.x, obb.center.y + dirX.y + dirY.y + dirZ.y, obb.center.z + dirX.z + dirY.z + dirZ.z };
+	Vector3 corner2 = { obb.center.x + dirX.x + dirY.x - dirZ.x, obb.center.y + dirX.y + dirY.y - dirZ.y, obb.center.z + dirX.z + dirY.z - dirZ.z };
+	Vector3 corner3 = { obb.center.x + dirX.x - dirY.x - dirZ.x, obb.center.y + dirX.y - dirY.y - dirZ.y, obb.center.z + dirX.z - dirY.z - dirZ.z };
+	Vector3 corner4 = { obb.center.x + dirX.x - dirY.x + dirZ.x, obb.center.y + dirX.y - dirY.y + dirZ.y, obb.center.z + dirX.z - dirY.z + dirZ.z };
+
+	Vector3 corner5 = { obb.center.x - dirX.x + dirY.x + dirZ.x, obb.center.y - dirX.y + dirY.y + dirZ.y, obb.center.z - dirX.z + dirY.z + dirZ.z };
+	Vector3 corner6 = { obb.center.x - dirX.x + dirY.x - dirZ.x, obb.center.y - dirX.y + dirY.y - dirZ.y, obb.center.z - dirX.z + dirY.z - dirZ.z };
+	Vector3 corner7 = { obb.center.x - dirX.x - dirY.x - dirZ.x, obb.center.y - dirX.y - dirY.y - dirZ.y, obb.center.z - dirX.z - dirY.z - dirZ.z };
+	Vector3 corner8 = { obb.center.x - dirX.x - dirY.x + dirZ.x, obb.center.y - dirX.y - dirY.y + dirZ.y, obb.center.z - dirX.z - dirY.z + dirZ.z };
+
+	//+X face
+	DrawLine3D(corner1, corner2, BLUE);
+	DrawLine3D(corner2, corner3, BLUE);
+	DrawLine3D(corner3, corner4, BLUE);
+	DrawLine3D(corner4, corner1, BLUE);
+
+	//-X face
+	DrawLine3D(corner5, corner6, BLUE);
+	DrawLine3D(corner6, corner7, BLUE);
+	DrawLine3D(corner7, corner8, BLUE);
+	DrawLine3D(corner8, corner5, BLUE);
+
+	//connecting faces
+	DrawLine3D(corner1, corner5, BLUE);
+	DrawLine3D(corner2, corner6, BLUE);
+	DrawLine3D(corner3, corner7, BLUE);
+	DrawLine3D(corner4, corner8, BLUE);
+
+	DrawSphere(corner1, 0.05f, MAGENTA);
+	DrawSphere(corner2, 0.05f, MAGENTA);
+	DrawSphere(corner3, 0.05f, MAGENTA);
+	DrawSphere(corner4, 0.05f, MAGENTA);
+	DrawSphere(corner5, 0.05f, MAGENTA);
+	DrawSphere(corner6, 0.05f, MAGENTA);
+	DrawSphere(corner7, 0.05f, MAGENTA);
+	DrawSphere(corner8, 0.05f, MAGENTA);
 }

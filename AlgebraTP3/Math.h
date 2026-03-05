@@ -22,8 +22,7 @@ struct Plane
 };
 
 void CalculateOBB(Model model, MyOBB& obb, Matrix worldMatrix);
-void UpdateOBB(MyOBB& obb, Matrix worldMatrix);
-void DrawOBB(MyOBB obb);
+void UpdateOBB(MyOBB& obb, Matrix worldMatrix, Vector3 velocity);
 
 void CalculateUniqueModelPlanes(Model model, std::vector<Plane>& uniquePlanes);
 MyAABB CalculateLocalAABB(Mesh mesh);
@@ -36,3 +35,6 @@ Vector3 operator+(Vector3& vector1, Vector3& vector2);
 Vector3 operator-(Vector3& vector1, Vector3& vector2);
 
 float getVectorMagnitude(Vector3 vector);
+float getVectorMagnitude(Vector2 vector);
+
+float getVector2Angle(Vector2 v1, Vector2 v2);
